@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Costa Blanca &amp; Valencia — Kids Activities</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Poppins',sans-serif;background:#f0f6ff;overflow:hidden}
+    #app{display:flex;flex-direction:column;height:100vh}
+    header{background:linear-gradient(135deg,#1a73e8,#0d47a1 55%,#e74c3c);color:white;padding:14px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:1000;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+    h1{font-size:1.3rem;font-weight:800;margin:0;line-height:1.2}
+    .subtitle{font-size:.78rem;opacity:.85;margin-top:3px}
+    .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+    .header-badges{display:flex;gap:8px;align-items:center}
+    .badge{background:rgba(255,255,255,.2);border-radius:20px;padding:5px 13px;font-size:.75rem;font-weight:600}
+    .lang-toggle{display:flex;gap:4px}
+    .lang-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:3px 10px;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+    .lang-btn.active{background:white;color:#0d47a1;border-color:white}
+    .lang-btn:hover:not(.active){background:rgba(255,255,255,.25)}
+    .filters{background:white;padding:10px 18px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid #e0e7f0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .filter-label{font-size:.72rem;color:#666;font-weight:600;line-height:30px}
+    .filter-btn{border-radius:20px;padding:5px 14px;font-size:.73rem;font-weight:600;border:none;cursor:pointer;transition:all .2s}
+    .filter-btn.all{background:#1a73e8;color:white}
+    .filter-btn.all:hover{background:#0d47a1}
+    .filter-btn.waterpark{background:#00b4d8;color:white;opacity:.6}
+    .filter-btn.waterpark:hover,.filter-btn.waterpark.active{opacity:1}
+    .filter-btn.dieren{background:#4caf50;color:white;opacity:.6}
+    .filter-btn.dieren:hover,.filter-btn.dieren.active{opacity:1}
+    .filter-btn.natuur{background:#7cb342;color:white;opacity:.6}
+    .filter-btn.natuur:hover,.filter-btn.natuur.active{opacity:1}
+    .filter-btn.cultuur{background:#ff9800;color:white;opacity:.6}
+    .filter-btn.cultuur:hover,.filter-btn.cultuur.active{opacity:1}
+    .filter-btn.avontuur{background:#e91e63;color:white;opacity:.6}
+    .filter-btn.avontuur:hover,.filter-btn.avontuur.active{opacity:1}
+    .filter-btn.strand{background:#f4a012;color:white;opacity:.6}
+    .filter-btn.strand:hover,.filter-btn.strand.active{opacity:1}
+    .filter-separator{width:1px;background:#ddd;height:22px;margin:0 3px}
+    .filter-btn.cb{background:#9c27b0;color:white;opacity:.6}
+    .filter-btn.cb:hover,.filter-btn.cb.active{opacity:1}
+    .filter-btn.denia{background:#00897b;color:white;opacity:.6}
+    .filter-btn.denia:hover,.filter-btn.denia.active{opacity:1}
+    .filter-btn.javea{background:#2e7d32;color:white;opacity:.6}
+    .filter-btn.javea:hover,.filter-btn.javea.active{opacity:1}
+    .filter-btn.valencia{background:#c62828;color:white;opacity:.6}
+    .filter-btn.valencia:hover,.filter-btn.valencia.active{opacity:1}
+    .layout{display:flex;flex:1;overflow:hidden}
+    .sidebar{width:320px;background:white;border-right:1px solid #e0e7f0;display:flex;flex-direction:column;overflow:hidden}
+    .route-panel{background:#f8fbff;border-bottom:2px solid #e0e7f0;padding:12px 14px}
+    .rp-title{font-size:.82rem;font-weight:700;color:#1a73e8;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .rp-count{background:#1a73e8;color:white;border-radius:10px;padding:1px 8px;font-size:.68rem}
+    .origin-section{margin-bottom:10px}
+    .origin-btn{width:100%;border:1.5px solid #1a73e8;background:white;color:#1a73e8;border-radius:8px;padding:7px;font-size:.73rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px}
+    .origin-btn:hover{background:#e8f0fe}
+    .origin-btn.active{background:#27ae60;border-color:#27ae60;color:white}
+    .origin-status{font-size:.7rem;color:#27ae60;margin-left:8px;font-weight:600}
+    .mode-select{display:flex;gap:6px;margin-bottom:10px}
+    .mode-btn{flex:1;border:1.5px solid #ddd;background:white;border-radius:8px;padding:5px;font-size:.68rem;font-weight:600;text-align:center;cursor:pointer;transition:all .2s}
+    .mode-btn:hover{background:#f5f5f5}
+    .mode-btn.active{border-color:#1a73e8;background:#e8f0fe;color:#1a73e8}
+    .stop-list{max-height:160px;overflow-y:auto;margin-bottom:8px}
+    .stop-item{background:white;border:1px solid #e0e7f0;border-radius:8px;padding:7px 9px;display:flex;align-items:center;gap:7px;margin-bottom:5px}
+    .stop-num{background:#1a73e8;color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700}
+    .stop-name{font-size:.72rem;font-weight:600}
+    .stop-city{font-size:.62rem;color:#888}
+    .stop-del{background:none;border:none;color:#e74c3c;font-size:.9rem;cursor:pointer;margin-left:auto}
+    .stop-del:hover{color:#c0392b}
+    .rp-empty{text-align:center;color:#aaa;font-size:.72rem;padding:12px 0}
+    .rp-actions{display:flex;gap:7px}
+    .rp-open-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#1a73e8,#0d47a1);color:white;text-decoration:none;border-radius:10px;padding:9px;font-size:.75rem;font-weight:700;transition:all .2s;cursor:pointer}
+    .rp-open-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,115,232,.4)}
+    .rp-open-btn.disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;pointer-events:none}
+    .rp-clear-btn{background:white;border:1.5px solid #e74c3c;color:#e74c3c;border-radius:10px;padding:9px 11px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .2s}
+    .rp-clear-btn:hover{background:#fee}
+    .sidebar-title{padding:8px 13px 6px;font-size:.72rem;font-weight:700;color:#1a73e8;background:#f8fbff;border-bottom:1px solid #f0f0f0}
+    .sidebar-count{float:right;font-size:.65rem;color:#888;font-weight:400}
+    .sidebar-list{flex:1;overflow-y:auto}
+    .region-header{padding:5px 13px;font-size:.66rem;font-weight:700;text-transform:uppercase;color:white}
+    .region-header.cb{background:#9c27b0}
+    .region-header.denia{background:#00897b}
+    .region-header.javea{background:#2e7d32}
+    .region-header.valencia{background:#c62828}
+    .sidebar-item{padding:9px 11px;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:8px}
+    .sidebar-item:hover{background:#f8fbff}
+    .sidebar-item.in-route{background:#e8f7ef}
+    .sidebar-item-icon{font-size:1.1rem;flex-shrink:0}
+    .sidebar-item-info{flex:1;min-width:0}
+    .sidebar-item-info h4{font-size:.77rem;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sidebar-item-info p{font-size:.64rem;color:#777;margin-top:2px}
+    .sidebar-item-badge{display:inline-block;border-radius:7px;padding:1px 6px;font-size:.6rem;font-weight:600;color:white;margin-top:2px}
+    .sidebar-item-add{margin-left:auto;border:1.5px solid #1a73e8;color:#1a73e8;border-radius:7px;padding:3px 8px;font-size:.7rem;font-weight:700;background:white;flex-shrink:0;transition:all .2s}
+    .sidebar-item-add:hover{background:#e8f0fe}
+    .sidebar-item-add.added{background:#27ae60;border-color:#27ae60;color:white}
+    #map{flex:1;position:relative}
+    .leaflet-popup-content-wrapper{border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+    .leaflet-popup-content{margin:0;font-family:'Poppins',sans-serif;width:280px!important}
+    .popup-header{padding:11px 14px}
+    .popup-header h3{font-size:.9rem;font-weight:700;margin:0;color:white}
+    .popup-header p{font-size:.68rem;margin:4px 0 0;opacity:.9;color:white}
+    .popup-region{display:inline-block;border-radius:8px;padding:1px 7px;font-size:.62rem;font-weight:600;color:white;margin-left:6px}
+    .popup-body{padding:10px 14px;font-size:.73rem;color:#444;line-height:1.4}
+    .popup-meta{display:flex;gap:10px;margin-top:7px;font-size:.68rem;color:#666}
+    .popup-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+    .popup-tag{background:#f0f4ff;color:#1a73e8;border-radius:9px;padding:2px 7px;font-size:.62rem;font-weight:600}
+    .popup-btns{display:flex;gap:7px;padding:8px 15px 12px}
+    .popup-btn-nav{flex:1;background:linear-gradient(135deg,#1a73e8,#0d47a1);color:white;text-decoration:none;border-radius:8px;padding:7px;font-size:.7rem;font-weight:700;text-align:center;display:block;transition:all .2s}
+    .popup-btn-nav:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(26,115,232,.4)}
+    .popup-btn-add{border:1.5px solid #1a73e8;color:#1a73e8;border-radius:8px;padding:7px 10px;font-size:.7rem;font-weight:700;background:white;cursor:pointer;transition:all .2s}
+    .popup-btn-add:hover{background:#e8f0fe}
+    .popup-btn-add.added{background:#27ae60;border-color:#27ae60;color:white}
+    .popup-btn-info{border:1.5px solid #ddd;color:#555;border-radius:8px;padding:7px 10px;font-size:.7rem;text-decoration:none;display:block;transition:all .2s}
+    .popup-btn-info:hover{background:#f5f5f5}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:white;padding:10px 18px;border-radius:8px;font-size:.8rem;z-index:10000;opacity:0;transition:opacity .3s;pointer-events:none}
+    .toast.show{opacity:1}
+    @media(max-width:768px){
+      .layout{flex-direction:column}
+      .sidebar{width:100%;max-height:40vh;border-right:none;border-bottom:1px solid #e0e7f0}
+      h1{font-size:1.1rem}
+      .subtitle{font-size:.72rem}
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1 id="hdr-title"></h1>
+      <div class="subtitle" id="hdr-subtitle"></div>
+    </div>
+    <div class="header-right">
+      <div class="header-badges">
+        <div class="badge" id="badge-region"></div>
+        <div class="badge" id="badge-count"></div>
+      </div>
+      <div class="lang-toggle">
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">🇬🇧 EN</button>
+        <button class="lang-btn" data-lang="nl" onclick="setLang('nl')">🇳🇱 NL</button>
+        <button class="lang-btn" data-lang="de" onclick="setLang('de')">🇩🇪 DE</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="filters">
+    <span class="filter-label" id="fl-cat"></span>
+    <button class="filter-btn all" data-cat="all" id="fb-all" onclick="filterCat('all')"></button>
+    <button class="filter-btn waterpark" data-cat="waterpark" id="fb-waterpark" onclick="filterCat('waterpark')"></button>
+    <button class="filter-btn dieren" data-cat="dieren" id="fb-dieren" onclick="filterCat('dieren')"></button>
+    <button class="filter-btn natuur" data-cat="natuur" id="fb-natuur" onclick="filterCat('natuur')"></button>
+    <button class="filter-btn cultuur" data-cat="cultuur" id="fb-cultuur" onclick="filterCat('cultuur')"></button>
+    <button class="filter-btn avontuur" data-cat="avontuur" id="fb-avontuur" onclick="filterCat('avontuur')"></button>
+    <button class="filter-btn strand" data-cat="strand" id="fb-strand" onclick="filterCat('strand')"></button>
+    <div class="filter-separator"></div>
+    <span class="filter-label" id="fl-reg"></span>
+    <button class="filter-btn cb" data-reg="cb" id="fb-cb" onclick="filterReg('cb')"></button>
+    <button class="filter-btn denia" data-reg="denia" id="fb-denia" onclick="filterReg('denia')"></button>
+    <button class="filter-btn javea" data-reg="javea" id="fb-javea" onclick="filterReg('javea')"></button>
+    <button class="filter-btn valencia" data-reg="valencia" id="fb-valencia" onclick="filterReg('valencia')"></button>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="route-panel">
+        <div class="rp-title"><span id="rp-title-label"></span> <span class="rp-count" id="rp-count">0</span></div>
+        <div class="origin-section">
+          <button class="origin-btn" id="loc-btn" onclick="getMyLocation()"></button>
+          <span class="origin-status" id="loc-status" style="display:none"></span>
+        </div>
+        <div class="mode-select">
+          <div class="mode-btn active" data-mode="driving" id="mode-driving" onclick="selectMode('driving')"></div>
+          <div class="mode-btn" data-mode="walking" id="mode-walking" onclick="selectMode('walking')"></div>
+          <div class="mode-btn" data-mode="bicycling" id="mode-bicycling" onclick="selectMode('bicycling')"></div>
+        </div>
+        <div class="stop-list" id="stop-list">
+          <div class="rp-empty" id="rp-empty"></div>
+        </div>
+        <div class="rp-actions">
+          <a class="rp-open-btn disabled" id="open-gm-link" href="#" target="_blank" rel="noopener noreferrer">
+            <img src="https://www.gstatic.com/images/branding/product/1x/maps_48dp.png" style="width:18px;height:18px;border-radius:4px" alt=""/>
+            <span id="gm-btn-text"></span>
+          </a>
+          <button class="rp-clear-btn" onclick="clearRoute()">🗑️</button>
+        </div>
+      </div>
+      <div class="sidebar-title" id="sidebar-title-el">
+        📍 <span id="sidebar-title-label"></span> <span class="sidebar-count" id="list-count"></span>
+      </div>
+      <div class="sidebar-list" id="sidebar-list"></div>
+    </div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── TRANSLATIONS ──────────────────────────────────────────────────────────────
+const t = {
+  en: {
+    page_title:"Costa Blanca & Valencia — Kids Activities Map",
+    h1:"🏖️ Costa Blanca & Valencia — Kids Activities",
+    subtitle:"From Benidorm to Valencia — build your perfect day trip",
+    badge_region:"🇪🇸 Alicante & Valencia",
+    locations_label:"locations",
+    fl_cat:"Category:",fl_reg:"Region:",
+    fb_all:"🗺️ All",fb_waterpark:"🌊 Water Park",fb_dieren:"🦁 Animals",fb_natuur:"🌿 Nature",
+    fb_cultuur:"🏰 Culture",fb_avontuur:"🎢 Adventure",fb_strand:"🏖️ Beach",
+    fb_cb:"🏔️ Costa Blanca",fb_denia:"⛵ Dénia",fb_javea:"🌊 Jávea",fb_valencia:"🏙️ Valencia",
+    rp_title:"🗺️ Day Route Planner",
+    loc_btn:"📍 Use my location",loc_searching:"📍 Searching...",loc_active:"📍 Location active",loc_found:"✅ Found",
+    mode_driving:"🚗 Car",mode_walking:"🚶 Walk",mode_bicycling:"🚲 Bike",
+    rp_empty:"Click <strong>+</strong> on an activity to add it",
+    open_gm:"Open in Google Maps",
+    sidebar_label:"Activities",
+    popup_route:"📍 Route here",popup_add:"+ Add",popup_added:"✓ Added",
+    cat_waterpark:"Water Park",cat_dieren:"Animals",cat_natuur:"Nature",cat_cultuur:"Culture",cat_avontuur:"Adventure",cat_strand:"Beach",
+    reg_cb:"Costa Blanca",reg_denia:"Dénia",reg_javea:"Jávea",reg_valencia:"Valencia",
+    age_all:"All ages",free_word:"Free",
+    toast_added:"✅ Added to route",toast_removed:"❌ Removed from route",toast_max:"⚠️ Max 9 stops reached",
+    toast_loc:"📍 Location found!",toast_loc_err:"❌ Location not available",toast_cleared:"🗑️ Route cleared",
+    confirm_clear:"Are you sure you want to clear the route?",my_location:"📍 My location"
+  },
+  nl: {
+    page_title:"Costa Blanca & Valencia — Kinderactiviteiten Kaart",
+    h1:"🏖️ Costa Blanca & Valencia — Kinderactiviteiten",
+    subtitle:"Van Benidorm tot Valencia — bouw jouw perfecte dagroute",
+    badge_region:"🇪🇸 Alicante & Valencia",
+    locations_label:"locaties",
+    fl_cat:"Categorie:",fl_reg:"Regio:",
+    fb_all:"🗺️ Alles",fb_waterpark:"🌊 Waterpark",fb_dieren:"🦁 Dieren",fb_natuur:"🌿 Natuur",
+    fb_cultuur:"🏰 Cultuur",fb_avontuur:"🎢 Avontuur",fb_strand:"🏖️ Strand",
+    fb_cb:"🏔️ Costa Blanca",fb_denia:"⛵ Dénia",fb_javea:"🌊 Jávea",fb_valencia:"🏙️ Valencia",
+    rp_title:"🗺️ Dagroute Planner",
+    loc_btn:"📍 Gebruik mijn locatie",loc_searching:"📍 Zoeken...",loc_active:"📍 Locatie actief",loc_found:"✅ Gevonden",
+    mode_driving:"🚗 Auto",mode_walking:"🚶 Lopen",mode_bicycling:"🚲 Fiets",
+    rp_empty:"Klik op <strong>+</strong> bij een activiteit om toe te voegen",
+    open_gm:"Open in Google Maps",
+    sidebar_label:"Activiteiten",
+    popup_route:"📍 Route naar hier",popup_add:"+ Dag",popup_added:"✓ Dag",
+    cat_waterpark:"Waterpark",cat_dieren:"Dieren",cat_natuur:"Natuur",cat_cultuur:"Cultuur",cat_avontuur:"Avontuur",cat_strand:"Strand",
+    reg_cb:"Costa Blanca",reg_denia:"Dénia",reg_javea:"Jávea",reg_valencia:"Valencia",
+    age_all:"Alle leeftijden",free_word:"Gratis",
+    toast_added:"✅ Toegevoegd aan route",toast_removed:"❌ Verwijderd uit route",toast_max:"⚠️ Maximum 9 stops bereikt",
+    toast_loc:"📍 Locatie gevonden!",toast_loc_err:"❌ Locatie niet beschikbaar",toast_cleared:"🗑️ Route gewist",
+    confirm_clear:"Weet je zeker dat je de route wilt wissen?",my_location:"📍 Mijn locatie"
+  },
+  de: {
+    page_title:"Costa Blanca & Valencia — Aktivitäten für Kinder",
+    h1:"🏖️ Costa Blanca & Valencia — Kinderaktivitäten",
+    subtitle:"Von Benidorm bis Valencia — planen Sie Ihre perfekte Tagestour",
+    badge_region:"🇪🇸 Alicante & Valencia",
+    locations_label:"Standorte",
+    fl_cat:"Kategorie:",fl_reg:"Region:",
+    fb_all:"🗺️ Alle",fb_waterpark:"🌊 Wasserpark",fb_dieren:"🦁 Tiere",fb_natuur:"🌿 Natur",
+    fb_cultuur:"🏰 Kultur",fb_avontuur:"🎢 Abenteuer",fb_strand:"🏖️ Strand",
+    fb_cb:"🏔️ Costa Blanca",fb_denia:"⛵ Dénia",fb_javea:"🌊 Jávea",fb_valencia:"🏙️ Valencia",
+    rp_title:"🗺️ Tagesrouten-Planer",
+    loc_btn:"📍 Meinen Standort verwenden",loc_searching:"📍 Suche...",loc_active:"📍 Standort aktiv",loc_found:"✅ Gefunden",
+    mode_driving:"🚗 Auto",mode_walking:"🚶 Zu Fuß",mode_bicycling:"🚲 Fahrrad",
+    rp_empty:"Klicken Sie auf <strong>+</strong> bei einer Aktivität",
+    open_gm:"In Google Maps öffnen",
+    sidebar_label:"Aktivitäten",
+    popup_route:"📍 Route hierhin",popup_add:"+ Tag",popup_added:"✓ Tag",
+    cat_waterpark:"Wasserpark",cat_dieren:"Tiere",cat_natuur:"Natur",cat_cultuur:"Kultur",cat_avontuur:"Abenteuer",cat_strand:"Strand",
+    reg_cb:"Costa Blanca",reg_denia:"Dénia",reg_javea:"Jávea",reg_valencia:"Valencia",
+    age_all:"Alle Altersgruppen",free_word:"Kostenlos",
+    toast_added:"✅ Zur Route hinzugefügt",toast_removed:"❌ Aus Route entfernt",toast_max:"⚠️ Maximum 9 Stopps erreicht",
+    toast_loc:"📍 Standort gefunden!",toast_loc_err:"❌ Standort nicht verfügbar",toast_cleared:"🗑️ Route gelöscht",
+    confirm_clear:"Möchten Sie die Route wirklich löschen?",my_location:"📍 Mein Standort"
+  }
+};
+
+// ── LOCATION DATA ─────────────────────────────────────────────────────────────
+const catColors = {waterpark:"#00b4d8",dieren:"#4caf50",natuur:"#7cb342",cultuur:"#ff9800",avontuur:"#e91e63",strand:"#f4a012"};
+const regColors = {cb:"#9c27b0",denia:"#00897b",javea:"#2e7d32",valencia:"#c62828"};
+
+const locations = [
+  {id:1,name:"Terra Mítica",emoji:"🎢",cat:"avontuur",reg:"cb",city:"Benidorm",lat:38.5401,lng:-0.1325,
+   desc:{nl:"Spectaculair themapark met Egypte, Griekenland & Rome. Achtbanen voor alle leeftijden!",en:"Spectacular theme park with Egypt, Greece & Rome themes. Roller coasters for all ages!",de:"Spektakulärer Freizeitpark mit Ägypten, Griechenland & Rom. Achterbahnen für alle Altersgruppen!"},
+   age:"6+",price:"€€€",tags:{nl:["Achtbanen","Shows","Must-do"],en:["Roller coasters","Shows","Must-do"],de:["Achterbahnen","Shows","Must-do"]},url:"https://www.terramiticapark.com/"},
+  {id:2,name:"Aqualandia",emoji:"🌊",cat:"waterpark",reg:"cb",city:"Benidorm",lat:38.5590,lng:-0.1178,
+   desc:{nl:"Een van Europa's grootste waterparken met glijbanen, zwembaden en speelgebieden.",en:"One of Europe's largest water parks with slides, pools and play areas.",de:"Einer der größten Wasserparks Europas mit Rutschen, Pools und Spielbereichen."},
+   age:"3+",price:"€€",tags:{nl:["Glijbanen","Zwembaden","Familie"],en:["Slides","Pools","Family"],de:["Rutschen","Pools","Familie"]},url:"https://www.aqualandia.net/"},
+  {id:3,name:"Mundomar Benidorm",emoji:"🐬",cat:"dieren",reg:"cb",city:"Benidorm",lat:38.5590,lng:-0.1205,
+   desc:{nl:"Dierenpark met dolfijnen, zeeleeuwen en zeedieren. Shows en zwemmen met dolfijnen.",en:"Animal park with dolphins, sea lions and marine animals. Shows and swimming with dolphins.",de:"Tierpark mit Delfinen, Seelöwen und Meerestieren. Shows und Schwimmen mit Delfinen."},
+   age:"3+",price:"€€€",tags:{nl:["Dolfijnen","Shows","Educatief"],en:["Dolphins","Shows","Educational"],de:["Delfine","Shows","Lehrreich"]},url:"https://www.mundomarbenidorm.com/"},
+  {id:4,name:"Terra Natura Benidorm",emoji:"🦁",cat:"dieren",reg:"cb",city:"Benidorm",lat:38.5710,lng:-0.1398,
+   desc:{nl:"Safaripark met 1.500 dieren van 200 soorten, waarvan 50 ernstig bedreigd.",en:"Safari park with 1,500 animals from 200 species, 50 of which are critically endangered.",de:"Safaripark mit 1.500 Tieren aus 200 Arten, 50 davon vom Aussterben bedroht."},
+   age:"4+",price:"€€",tags:{nl:["Safari","Roofvogels","Natuur"],en:["Safari","Birds of prey","Nature"],de:["Safari","Greifvögel","Natur"]},url:"https://benidorm.terranatura.com/"},
+  {id:5,name:"Rio Safari Elche",emoji:"🦒",cat:"dieren",reg:"cb",city:"Elche",lat:38.2691,lng:-0.7068,
+   desc:{nl:"Dierentuin met zwembad! Zie giraffen, olifanten en zwem met zeeleeuwen.",en:"Zoo with a swimming pool! See giraffes, elephants and swim with sea lions.",de:"Zoo mit Schwimmbad! Sehen Sie Giraffen, Elefanten und schwimmen Sie mit Seelöwen."},
+   age:"3+",price:"€€",tags:{nl:["Safari","Zwembad","Giraffen"],en:["Safari","Pool","Giraffes"],de:["Safari","Pool","Giraffen"]},url:"https://riosafari.com/"},
+  {id:6,name:"DinoPark Algar",emoji:"🦕",cat:"avontuur",reg:"cb",city:"Callosa d'en Sarrià",lat:38.6478,lng:-0.0856,
+   desc:{nl:"Fascinerende reis terug in de tijd met levensgrote dinosaurussen in een botanische tuin.",en:"A fascinating journey back in time with life-size dinosaurs in a botanical garden.",de:"Eine faszinierende Reise in die Vergangenheit mit lebensgroßen Dinosauriern in einem botanischen Garten."},
+   age:"4+",price:"€",tags:{nl:["Dinosaurussen","Botanisch","Educatief"],en:["Dinosaurs","Botanical","Educational"],de:["Dinosaurier","Botanisch","Lehrreich"]},url:"https://www.dinopark.es/"},
+  {id:7,name:"Fuentes del Algar",emoji:"💧",cat:"natuur",reg:"cb",city:"Callosa d'en Sarrià",lat:38.6528,lng:-0.0823,
+   desc:{nl:"Prachtige watervallen met natuurlijke zwembaden. Perfect om af te koelen!",en:"Beautiful waterfalls with natural swimming pools. Perfect for cooling off!",de:"Wunderschöne Wasserfälle mit natürlichen Schwimmbecken. Perfekt zum Abkühlen!"},
+   age:"5+",price:"€",tags:{nl:["Watervallen","Zwemmen","Picknick"],en:["Waterfalls","Swimming","Picnic"],de:["Wasserfälle","Schwimmen","Picknick"]},url:"https://www.lasfuentesdelalgar.com/"},
+  {id:8,name:"Castillo de Santa Bárbara",emoji:"🏰",cat:"cultuur",reg:"cb",city:"Alicante",lat:38.3446,lng:-0.4822,
+   desc:{nl:"Historisch kasteel met spectaculair uitzicht over Alicante en de zee.",en:"Historic castle with spectacular views over Alicante and the sea.",de:"Historisches Schloss mit spektakulärem Blick über Alicante und das Meer."},
+   age:"6+",price:"Gratis (lift €€)",tags:{nl:["Geschiedenis","Uitzicht","Ridders"],en:["History","Views","Knights"],de:["Geschichte","Aussicht","Ritter"]},url:"https://www.alicante.es/"},
+  {id:9,name:"Isla Tabarca",emoji:"🏝️",cat:"natuur",reg:"cb",city:"Santa Pola",lat:37.9671,lng:-0.4738,
+   desc:{nl:"Pirateneiland! Boottochtje naar het kleinste bewoonde eiland van Spanje.",en:"Pirate island! Boat trip to the smallest inhabited island in Spain. Lighthouses and rare birds.",de:"Pirateninsel! Bootsfahrt zur kleinsten bewohnten Insel Spaniens. Leuchttürme und seltene Vögel."},
+   age:"4+",price:"€ (boot/boat/Boot)",tags:{nl:["Boot","Eiland","Snorkelen"],en:["Boat","Island","Snorkelling"],de:["Boot","Insel","Schnorcheln"]},url:"https://www.alicanteturismo.com/"},
+  {id:10,name:"Peñón de Ifach",emoji:"⛰️",cat:"natuur",reg:"cb",city:"Calpe",lat:38.6406,lng:0.0603,
+   desc:{nl:"332m hoge kalkrots met wandelpaden. Prachtig panorama en soms flamingo's!",en:"332m high limestone rock with hiking trails. Stunning panorama and sometimes flamingos!",de:"332m hoher Kalkfelsen mit Wanderwegen. Atemberaubendes Panorama und manchmal Flamingos!"},
+   age:"7+",price:"Gratis",tags:{nl:["Wandelen","Uitzicht","Natuur"],en:["Hiking","Views","Nature"],de:["Wandern","Aussicht","Natur"]},url:"https://parquesnaturales.gva.es/"},
+  {id:11,name:"Pola Park",emoji:"🎡",cat:"avontuur",reg:"cb",city:"Santa Pola",lat:38.1893,lng:-0.5512,
+   desc:{nl:"Pretpark vol attracties: trampolines, roetsbanen, spookhuizen en botsauto's.",en:"Amusement park full of attractions: trampolines, slides, ghost houses and bumper cars.",de:"Vergnügungspark mit Trampolins, Rutschen, Geisterhäusern und Autoscootern."},
+   age:"3+",price:"€",tags:{nl:["Attracties","Botsauto","Familie"],en:["Attractions","Bumper cars","Family"],de:["Attraktionen","Autoscooter","Familie"]},url:"https://www.polapark.com/"},
+  {id:12,name:"Aquopolis Torrevieja",emoji:"🏊",cat:"waterpark",reg:"cb",city:"Torrevieja",lat:37.9815,lng:-0.6754,
+   desc:{nl:"Waterpark met glijbanen, zwembaden en kinderbaden.",en:"Water park with slides, pools and children's pools.",de:"Wasserpark mit Rutschen, Pools und Kinderbecken."},
+   age:"3+",price:"€€",tags:{nl:["Glijbanen","Kinderbad","Zomer"],en:["Slides","Kids pool","Summer"],de:["Rutschen","Kinderbecken","Sommer"]},url:"https://www.aquopolis.es/"},
+  {id:13,name:"Museo Valor Chocolate",emoji:"🍫",cat:"cultuur",reg:"cb",city:"Villajoyosa",lat:38.5063,lng:-0.2312,
+   desc:{nl:"Leer over het chocolademakingsproces en proef heerlijke chocolade!",en:"Learn about the chocolate-making process and taste delicious chocolate!",de:"Lernen Sie den Schokoladenherstellungsprozess kennen und probieren Sie köstliche Schokolade!"},
+   age:"5+",price:"€",tags:{nl:["Chocolade","Proeven","Museum"],en:["Chocolate","Tasting","Museum"],de:["Schokolade","Verkostung","Museum"]},url:"https://www.valor.es/"},
+  {id:14,name:"Forestal Park Benidorm",emoji:"🌲",cat:"avontuur",reg:"cb",city:"Benidorm",lat:38.5720,lng:-0.1390,
+   desc:{nl:"Klim tussen de bomen met ziplines, Tarzan-schommels en Tibetaanse bruggen!",en:"Climb through the trees with ziplines, Tarzan swings and Tibetan bridges!",de:"Klettern Sie durch die Bäume mit Seilbahnen, Tarzan-Schaukeln und Tibetischen Brücken!"},
+   age:"6+",price:"€€",tags:{nl:["Klimmen","Zipline","Avontuur"],en:["Climbing","Zipline","Adventure"],de:["Klettern","Seilbahn","Abenteuer"]},url:"https://tirolinasgo.com/"},
+  {id:15,name:"Karting Finestrat",emoji:"🏎️",cat:"avontuur",reg:"cb",city:"Finestrat",lat:38.5582,lng:-0.2064,
+   desc:{nl:"Voor kleine snelheidsduivels! Kartbaan waar kinderen en volwassenen kunnen racen.",en:"For little speed demons! Karting track where kids and adults can race.",de:"Für kleine Rennfahrer! Kartbahn für Kinder und Erwachsene."},
+   age:"7+",price:"€€",tags:{nl:["Karten","Racen","Snelheid"],en:["Karting","Racing","Speed"],de:["Kart","Rennen","Geschwindigkeit"]},url:"https://www.kartingbenidorm.com/"},
+  {id:16,name:"Playa de Levante",emoji:"🏖️",cat:"strand",reg:"cb",city:"Benidorm",lat:38.5380,lng:-0.1260,
+   desc:{nl:"Blauwe vlag strand met autovrije boulevard. Speeltuinen en veel activiteiten.",en:"Blue Flag beach with car-free boulevard. Playgrounds and plenty of activities.",de:"Blaue-Flagge-Strand mit autofreier Promenade. Spielplätze und viele Aktivitäten."},
+   age:"Alle",price:"Gratis",tags:{nl:["Strand","Speeltuin","Boulevard"],en:["Beach","Playground","Promenade"],de:["Strand","Spielplatz","Promenade"]},url:"https://www.benidorm.org/"},
+  {id:17,name:"Playa Granadella",emoji:"🤿",cat:"strand",reg:"cb",city:"Jávea",lat:38.7308,lng:0.1823,
+   desc:{nl:"Een van de mooiste stranden van Spanje! Perfect voor snorkelen met kinderen.",en:"One of Spain's most beautiful beaches! Perfect for snorkelling with children.",de:"Einer der schönsten Strände Spaniens! Perfekt zum Schnorcheln mit Kindern."},
+   age:"5+",price:"Gratis",tags:{nl:["Snorkelen","Baai","Helder water"],en:["Snorkelling","Bay","Clear water"],de:["Schnorcheln","Bucht","Klares Wasser"]},url:"https://www.xabia.org/"},
+  {id:18,name:"Playa Arenal Calpe",emoji:"🏖️",cat:"strand",reg:"cb",city:"Calpe",lat:38.6391,lng:0.0625,
+   desc:{nl:"Breed zandstrand met ondiepe zee, perfect voor jonge kinderen. Speeltuinen langs de promenade.",en:"Wide sandy beach with shallow water, perfect for young children. Playgrounds along the promenade.",de:"Breiter Sandstrand mit flachem Wasser, perfekt für Kleinkinder. Spielplätze entlang der Promenade."},
+   age:"Alle",price:"Gratis",tags:{nl:["Zand","Ondiep","Familie"],en:["Sand","Shallow","Family"],de:["Sand","Flach","Familie"]},url:"https://www.calpe.es/"},
+  {id:19,name:"Cuevas de Canelobre",emoji:"🕳️",cat:"natuur",reg:"cb",city:"Busot",lat:38.4544,lng:-0.4054,
+   desc:{nl:"Verlichte grotten met formaties die lijken op sprookjesfiguren. Magisch avontuur!",en:"Illuminated caves with formations that look like fairy-tale figures. A magical adventure!",de:"Beleuchtete Höhlen mit Formationen wie Märchenfiguren. Ein magisches Abenteuer!"},
+   age:"5+",price:"€",tags:{nl:["Grotten","Verlicht","Sprookjes"],en:["Caves","Illuminated","Fairy tales"],de:["Höhlen","Beleuchtet","Märchen"]},url:"https://www.cuevasdecanelobre.es/"},
+  {id:20,name:"Lo Pagán modderbaden",emoji:"🏖️",cat:"natuur",reg:"cb",city:"San Pedro del Pinatar",lat:37.7868,lng:-0.7748,
+   desc:{nl:"Zoutmeer waar je jezelf mag insmeren met geneeskrachtige modder. Hilarisch en ontspannend!",en:"Salt lake where you can cover yourself in healing mud. Hilarious and relaxing for the whole family!",de:"Salzsee, wo Sie sich mit heilendem Schlamm einschmieren können. Spaßig und entspannend!"},
+   age:"5+",price:"Gratis",tags:{nl:["Modder","Geneeskrachtig","Flamingos"],en:["Mud","Healing","Flamingos"],de:["Schlamm","Heilend","Flamingos"]},url:"https://www.sanpedrodelpinatar.es/"},
+  {id:21,name:"Parque de las Naciones",emoji:"🌳",cat:"natuur",reg:"cb",city:"Torrevieja",lat:37.9771,lng:-0.6854,
+   desc:{nl:"Park met groot meer, speeltuinen en wandelroutes. Ideaal voor een gezinspicknick.",en:"Park with a large lake, playgrounds and walking routes. Ideal for a family picnic.",de:"Park mit großem See, Spielplätzen und Wanderwegen. Ideal für ein Familienpicknick."},
+   age:"Alle",price:"Gratis",tags:{nl:["Park","Speeltuin","Meer"],en:["Park","Playground","Lake"],de:["Park","Spielplatz","See"]},url:"https://www.torrevieja.es/"},
+  {id:22,name:"Guadalest",emoji:"🏔️",cat:"cultuur",reg:"cb",city:"Guadalest",lat:38.6777,lng:-0.2026,
+   desc:{nl:"Sprookjesachtig bergdorp met kasteel en miniatuurmuseum dat kinderen fascineert.",en:"Fairy-tale mountain village with a castle and miniature museum that fascinates children.",de:"Märchenhaftes Bergdorf mit Schloss und Miniaturmuseum, das Kinder begeistert."},
+   age:"6+",price:"€",tags:{nl:["Kasteel","Bergdorp","Miniaturen"],en:["Castle","Mountain village","Miniatures"],de:["Schloss","Bergdorf","Miniaturen"]},url:"https://www.guadalest.es/"},
+  {id:23,name:"Safari Aitana",emoji:"🐘",cat:"dieren",reg:"cb",city:"Penàguila",lat:38.6628,lng:-0.3458,
+   desc:{nl:"Safaripark in de bergen: rijd met de auto langs olifanten, giraffen, zebra's en apen!",en:"Safari park in the mountains: drive through past elephants, giraffes, zebras and monkeys!",de:"Safaripark in den Bergen: fahren Sie mit dem Auto an Elefanten, Giraffen, Zebras und Affen vorbei!"},
+   age:"4+",price:"€€",tags:{nl:["Safari","Auto tour","Wilde dieren"],en:["Safari","Car tour","Wildlife"],de:["Safari","Autotour","Wildtiere"]},url:"https://www.safariaitana.com/"},
+  {id:24,name:"Aqua Natura",emoji:"🐠",cat:"waterpark",reg:"cb",city:"Benidorm",lat:38.5715,lng:-0.1395,
+   desc:{nl:"Kleiner waterpark naast Terra Natura, gericht op jongere kinderen met lagere glijbanen.",en:"Smaller water park next to Terra Natura, aimed at younger children with lower slides.",de:"Kleinerer Wasserpark neben Terra Natura, ausgerichtet auf jüngere Kinder."},
+   age:"2+",price:"€€",tags:{nl:["Kindvriendelijk","Glijbanen","Rust"],en:["Child-friendly","Slides","Relaxed"],de:["Kinderfreundlich","Rutschen","Entspannt"]},url:"https://www.aquanatura.com/"},
+  {id:25,name:"Delfín S-61 Onderzeeër",emoji:"🚢",cat:"cultuur",reg:"cb",city:"Torrevieja",lat:37.9820,lng:-0.6750,
+   desc:{nl:"Bezoek de eerste onderzeeër van de Spaanse Armada, nu een museum in de haven.",en:"Visit the first submarine of the Spanish Navy, now a museum in the harbour.",de:"Besuchen Sie das erste U-Boot der spanischen Marine, jetzt ein Museum im Hafen."},
+   age:"7+",price:"€",tags:{nl:["Onderzeeër","Museum","Marine"],en:["Submarine","Museum","Navy"],de:["U-Boot","Museum","Marine"]},url:"https://www.torrevieja.es/"},
+  {id:26,name:"Castillo de Dénia",emoji:"🏰",cat:"cultuur",reg:"denia",city:"Dénia",lat:38.8427,lng:0.1059,
+   desc:{nl:"Kasteel met wachttorens, interactieve rondleidingen, speurtochten en middeleeuwse shows!",en:"Castle with watchtowers, interactive tours, treasure hunts and medieval shows for children!",de:"Burg mit Wachtürmen, interaktiven Führungen, Schnitzeljagden und mittelalterlichen Shows!"},
+   age:"5+",price:"€",tags:{nl:["Kasteel","Geschiedenis","Shows"],en:["Castle","History","Shows"],de:["Burg","Geschichte","Shows"]},url:"https://www.denia.net/"},
+  {id:27,name:"Museo del Juguete Dénia",emoji:"🪆",cat:"cultuur",reg:"denia",city:"Dénia",lat:38.8399,lng:0.1069,
+   desc:{nl:"Speelgoedmuseum! Ontdek houten treinen, blikken auto's en poppen uit vroeger tijden.",en:"Toy museum! Discover wooden trains, tin cars and dolls from times gone by.",de:"Spielzeugmuseum! Entdecken Sie Holzeisenbahnen, Blechautos und Puppen aus vergangenen Zeiten."},
+   age:"4+",price:"€",tags:{nl:["Speelgoed","Museum","Nostalgie"],en:["Toys","Museum","Nostalgia"],de:["Spielzeug","Museum","Nostalgie"]},url:"https://www.denia.net/"},
+  {id:28,name:"Montgó Natuurpark",emoji:"🏕️",cat:"natuur",reg:"denia",city:"Dénia",lat:38.8116,lng:0.1605,
+   desc:{nl:"Bergmassief met familiewandelingen. Korte paden voor kleintjes, uitdagende routes voor oudere kids.",en:"Mountain massif with family walks. Short paths for little ones, challenging routes for older kids. Almond trees and spectacular views!",de:"Bergmassiv mit Familienwanderungen. Kurze Pfade für Kleine, anspruchsvolle Routen für ältere Kinder."},
+   age:"6+",price:"Gratis",tags:{nl:["Wandelen","Natuur","Uitzicht"],en:["Hiking","Nature","Views"],de:["Wandern","Natur","Aussicht"]},url:"https://parquesnaturales.gva.es/"},
+  {id:29,name:"Cova Tallada",emoji:"🌊",cat:"natuur",reg:"denia",city:"Dénia / Jávea",lat:38.7984,lng:0.2189,
+   desc:{nl:"Uniek grottenstelsel direct aan zee. Magisch uitje met wandeling langs de kust. Zaklamp meenemen!",en:"Unique cave system right by the sea. A magical outing with a coastal walk. Bring a torch!",de:"Einzigartiges Höhlensystem direkt am Meer. Magischer Ausflug mit Küstenwanderung. Taschenlampe mitbringen!"},
+   age:"7+",price:"Gratis",tags:{nl:["Grot","Wandelen","Zee"],en:["Cave","Hiking","Sea"],de:["Höhle","Wandern","Meer"]},url:"https://www.denia.net/"},
+  {id:30,name:"Playa de Las Marinas",emoji:"🏖️",cat:"strand",reg:"denia",city:"Dénia",lat:38.8560,lng:0.1180,
+   desc:{nl:"Langste zandstrand van Dénia! Ondiep water, strandbars, speeltuinen en animatie in de zomer.",en:"Dénia's longest sandy beach! Shallow water, beach bars, playgrounds and summer entertainment.",de:"Dénias längster Sandstrand! Flaches Wasser, Strandbars, Spielplätze und Animation im Sommer."},
+   age:"Alle",price:"Gratis",tags:{nl:["Zand","Ondiep","Strandbars"],en:["Sand","Shallow","Beach bars"],de:["Sand","Flach","Strandbar"]},url:"https://www.denia.net/"},
+  {id:31,name:"Les Rotes snorkelstrand",emoji:"🤿",cat:"strand",reg:"denia",city:"Dénia",lat:38.8200,lng:0.1760,
+   desc:{nl:"Rotsachtige baaien perfect voor snorkelen! Ontdek kleurrijke vissen en zeeanemonen.",en:"Rocky bays perfect for snorkelling! Discover colourful fish and sea anemones.",de:"Felsige Buchten perfekt zum Schnorcheln! Entdecken Sie bunte Fische und Seeanemonen."},
+   age:"6+",price:"Gratis",tags:{nl:["Snorkelen","Rotsen","Vissen"],en:["Snorkelling","Rocks","Fish"],de:["Schnorcheln","Felsen","Fische"]},url:"https://www.denia.net/"},
+  {id:32,name:"Veerboot Dénia – Ibiza",emoji:"⛴️",cat:"avontuur",reg:"denia",city:"Dénia",lat:38.8407,lng:0.1126,
+   desc:{nl:"Snelle veerboot naar Ibiza of Formentera! Leuk avontuur voor een dagje eilandhoppen.",en:"Fast ferry to Ibiza or Formentera! A fun adventure for a day of island hopping.",de:"Schnelle Fähre nach Ibiza oder Formentera! Ein tolles Abenteuer für einen Tag Inselhopping."},
+   age:"Alle",price:"€€€",tags:{nl:["Boot","Eiland","Dagtocht"],en:["Ferry","Island","Day trip"],de:["Fähre","Insel","Tagesausflug"]},url:"https://www.balearia.com/"},
+  {id:33,name:"Playa del Arenal Jávea",emoji:"🏖️",cat:"strand",reg:"javea",city:"Jávea",lat:38.7830,lng:0.1648,
+   desc:{nl:"Zandstrand met autovrije promenade. Klimrekken, ijssalons, paddle-o's en gocarts!",en:"Sandy beach with car-free promenade. Climbing frames, ice cream parlours, pedalos and go-karts!",de:"Sandstrand mit autofreier Promenade. Klettergerüste, Eisdielen, Tretboote und Go-Karts!"},
+   age:"Alle",price:"Gratis",tags:{nl:["Zand","Promenade","Gocarts"],en:["Sand","Promenade","Go-karts"],de:["Sand","Promenade","Go-Karts"]},url:"https://www.xabia.org/"},
+  {id:34,name:"Cueva de las Calaveras",emoji:"💀",cat:"cultuur",reg:"javea",city:"Benidoleig",lat:38.7523,lng:-0.0280,
+   desc:{nl:"Grot met archeologisch belang. In 1913 werden hier Steentijdvoorwerpen en fossielen gevonden!",en:"Cave of archaeological importance. In 1913, Stone Age artefacts and fossils were discovered here!",de:"Höhle von archäologischer Bedeutung. 1913 wurden hier Steinzeitartefakte und Fossilien entdeckt!"},
+   age:"5+",price:"€",tags:{nl:["Grot","Archeologie","Fossielen"],en:["Cave","Archaeology","Fossils"],de:["Höhle","Archäologie","Fossilien"]},url:"https://www.cuevadelascalaveras.com/"},
+  {id:35,name:"Cap de Sant Antoni Marine Reserve",emoji:"🐠",cat:"natuur",reg:"javea",city:"Jávea",lat:38.8017,lng:0.2267,
+   desc:{nl:"Marinemeerreservaat met fantastisch snorkelen. Kalme wateren en veel vis!",en:"Marine nature reserve with fantastic snorkelling. Calm waters and plenty of fish!",de:"Meeresnaturreservat mit fantastischem Schnorcheln. Ruhige Gewässer und viele Fische!"},
+   age:"7+",price:"Gratis",tags:{nl:["Snorkelen","Reservaat","Natuur"],en:["Snorkelling","Reserve","Nature"],de:["Schnorcheln","Reservat","Natur"]},url:"https://www.xabia.org/"},
+  {id:36,name:"Karting Jávea",emoji:"🏎️",cat:"avontuur",reg:"javea",city:"Jávea",lat:38.7948,lng:0.1648,
+   desc:{nl:"Kartbaan met circuits voor kinderen en volwassenen. Snelheid en plezier!",en:"Karting track with circuits for children and adults. Speed and fun!",de:"Kartbahn mit Strecken für Kinder und Erwachsene. Geschwindigkeit und Spaß!"},
+   age:"7+",price:"€€",tags:{nl:["Karten","Racen","Familie"],en:["Karting","Racing","Family"],de:["Kart","Rennen","Familie"]},url:"https://www.javeabikes.com/"},
+  {id:37,name:"Cala Blanca Jávea",emoji:"🌊",cat:"strand",reg:"javea",city:"Jávea",lat:38.7699,lng:0.2012,
+   desc:{nl:"Rustige baai perfect voor rock pooling met kinderen. Neem emmertjes en scheppen mee!",en:"Quiet bay perfect for rock pooling with children. Bring buckets and spades!",de:"Ruhige Bucht perfekt zum Keschern mit Kindern. Eimer und Schaufeln mitbringen!"},
+   age:"4+",price:"Gratis",tags:{nl:["Rock pools","Baai","Schepjes"],en:["Rock pools","Bay","Buckets & spades"],de:["Felspools","Bucht","Eimer & Schaufeln"]},url:"https://www.xabia.org/"},
+  {id:38,name:"L'Oceanogràfic Valencia",emoji:"🦈",cat:"dieren",reg:"valencia",city:"Valencia",lat:39.4536,lng:-0.3541,
+   desc:{nl:"Het grootste aquarium van Europa! 500 soorten waaronder haaien, dolfijnen en pinguïns.",en:"The largest aquarium in Europe! 500 species including sharks, dolphins and penguins. The dolphin show is a must!",de:"Das größte Aquarium Europas! 500 Arten darunter Haie, Delfine und Pinguine."},
+   age:"3+",price:"€€€",tags:{nl:["Aquarium","Dolfijnen","Must-do"],en:["Aquarium","Dolphins","Must-do"],de:["Aquarium","Delfine","Must-do"]},url:"https://www.oceanografic.org/"},
+  {id:39,name:"Bioparc Valencia",emoji:"🦍",cat:"dieren",reg:"valencia",city:"Valencia",lat:39.4780,lng:-0.4058,
+   desc:{nl:"'Zoo immersion' concept: lijkt alsof je tussen de Afrikaanse dieren loopt. Olifanten, neushoorns, apen!",en:"'Zoo immersion' concept: feels like walking among African animals. Elephants, rhinos, monkeys and more!",de:"'Zoo-Immersions'-Konzept: Wie ein Spaziergang zwischen afrikanischen Tieren. Elefanten, Nashörner, Affen!"},
+   age:"3+",price:"€€",tags:{nl:["Dierentuin","Afrika","Immersie"],en:["Zoo","Africa","Immersion"],de:["Zoo","Afrika","Immersion"]},url:"https://bioparcvalencia.es/"},
+  {id:40,name:"Ciudad de las Artes y Ciencias",emoji:"🔭",cat:"cultuur",reg:"valencia",city:"Valencia",lat:39.4545,lng:-0.3540,
+   desc:{nl:"Futuristisch complex met wetenschapsmuseum (interactieve expo's!), IMAX en prachtige architectuur.",en:"Futuristic complex with science museum (interactive exhibits!), IMAX Hemispheric and stunning architecture.",de:"Futuristischer Komplex mit Wissenschaftsmuseum (interaktive Ausstellungen!), IMAX und Architektur."},
+   age:"5+",price:"€€",tags:{nl:["Wetenschap","IMAX","Architectuur"],en:["Science","IMAX","Architecture"],de:["Wissenschaft","IMAX","Architektur"]},url:"https://www.cac.es/"},
+  {id:41,name:"Gulliver Park Turia",emoji:"🗺️",cat:"avontuur",reg:"valencia",city:"Valencia",lat:39.4660,lng:-0.3697,
+   desc:{nl:"GRATIS! Reusachtige Gulliver-figuur met glijbanen en klimtoestellen. Kinderen klimmen over de vastgebonden reus!",en:"FREE! Giant Gulliver figure with slides and climbing equipment. Children climb all over the tied-down giant!",de:"GRATIS! Riesige Gulliver-Figur mit Rutschen und Klettergeräten. Kinder klettern über den festgebundenen Riesen!"},
+   age:"3+",price:"Gratis",tags:{nl:["Speeltuin","Glijbanen","Gratis"],en:["Playground","Slides","Free"],de:["Spielplatz","Rutschen","Gratis"]},url:"https://www.valencia.es/"},
+  {id:42,name:"Playa de la Malvarrosa",emoji:"🏖️",cat:"strand",reg:"valencia",city:"Valencia",lat:39.4750,lng:-0.3261,
+   desc:{nl:"Breed stadsstrand met promenade vol restaurants. Makkelijk bereikbaar met fiets of tram.",en:"Wide city beach with a promenade full of restaurants. Easily accessible by bike or tram.",de:"Breiter Stadtstrand mit einer Promenade voller Restaurants. Leicht erreichbar mit Fahrrad oder Straßenbahn."},
+   age:"Alle",price:"Gratis",tags:{nl:["Stadsstrand","Promenade","Restaurants"],en:["City beach","Promenade","Restaurants"],de:["Stadtstrand","Promenade","Restaurants"]},url:"https://www.visitvalencia.com/"}
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let lang = localStorage.getItem('mak-lang') || 'en';
+let markers = [];
+let map;
+let activeCat = "all";
+let activeReg = null;
+let routeStops = [];
+let travelMode = "driving";
+let myLat = null, myLng = null;
+let locationFound = false;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function L_(key) { return t[lang][key] || key; }
+function getCatName(c) { return {waterpark:L_("cat_waterpark"),dieren:L_("cat_dieren"),natuur:L_("cat_natuur"),cultuur:L_("cat_cultuur"),avontuur:L_("cat_avontuur"),strand:L_("cat_strand")}[c]; }
+function getRegionName(r) { return {cb:L_("reg_cb"),denia:L_("reg_denia"),javea:L_("reg_javea"),valencia:L_("reg_valencia")}[r]; }
+function getRegionIcon(r) { return {cb:"🏔️",denia:"⛵",javea:"🌊",valencia:"🏙️"}[r]; }
+function localizeAge(a) { return a === "Alle" ? L_("age_all") : a; }
+function localizePrice(p) { return p.replace(/Gratis/g, L_("free_word")); }
+function getDesc(loc) { return loc.desc[lang] || loc.desc.en; }
+function getTags(loc) { return (loc.tags[lang] || loc.tags.en); }
+
+// ── LANGUAGE ──────────────────────────────────────────────────────────────────
+function setLang(newLang) {
+  lang = newLang;
+  localStorage.setItem('mak-lang', lang);
+  document.documentElement.lang = lang;
+  document.title = L_("page_title");
+
+  document.getElementById('hdr-title').textContent = L_("h1");
+  document.getElementById('hdr-subtitle').textContent = L_("subtitle");
+  document.getElementById('badge-region').textContent = L_("badge_region");
+  document.getElementById('badge-count').textContent = `${locations.length} ${L_("locations_label")}`;
+
+  document.getElementById('fl-cat').textContent = L_("fl_cat");
+  document.getElementById('fl-reg').textContent = L_("fl_reg");
+  document.getElementById('fb-all').textContent = L_("fb_all");
+  document.getElementById('fb-waterpark').textContent = L_("fb_waterpark");
+  document.getElementById('fb-dieren').textContent = L_("fb_dieren");
+  document.getElementById('fb-natuur').textContent = L_("fb_natuur");
+  document.getElementById('fb-cultuur').textContent = L_("fb_cultuur");
+  document.getElementById('fb-avontuur').textContent = L_("fb_avontuur");
+  document.getElementById('fb-strand').textContent = L_("fb_strand");
+  document.getElementById('fb-cb').textContent = L_("fb_cb");
+  document.getElementById('fb-denia').textContent = L_("fb_denia");
+  document.getElementById('fb-javea').textContent = L_("fb_javea");
+  document.getElementById('fb-valencia').textContent = L_("fb_valencia");
+
+  document.getElementById('rp-title-label').textContent = L_("rp_title");
+  document.getElementById('mode-driving').textContent = L_("mode_driving");
+  document.getElementById('mode-walking').textContent = L_("mode_walking");
+  document.getElementById('mode-bicycling').textContent = L_("mode_bicycling");
+  document.getElementById('gm-btn-text').textContent = L_("open_gm");
+  document.getElementById('sidebar-title-label').textContent = L_("sidebar_label");
+
+  // Update loc button state
+  const locBtn = document.getElementById('loc-btn');
+  if (locationFound) {
+    locBtn.textContent = L_("loc_active");
+    document.getElementById('loc-status').textContent = L_("loc_found");
+  } else {
+    locBtn.textContent = L_("loc_btn");
+  }
+
+  // Active lang button
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+
+  renderMarkers();
+  renderSidebar();
+  refreshRoutePanel();
+}
+
+// ── MAP & MARKERS ─────────────────────────────────────────────────────────────
+function init() {
+  map = L.map("map", {scrollWheelZoom:true}).setView([38.9,-0.2], 8);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {attribution:"© OpenStreetMap"}).addTo(map);
+  setLang(lang);
+}
+
+function getFiltered() {
+  return locations.filter(loc => {
+    if (activeCat !== "all" && loc.cat !== activeCat) return false;
+    if (activeReg && loc.reg !== activeReg) return false;
+    return true;
+  });
+}
+
+function renderMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  getFiltered().forEach(loc => {
+    const color = catColors[loc.cat];
+    const inRoute = routeStops.includes(loc.id);
+    const border = inRoute ? ";border-color:#27ae60;border-width:3px" : "";
+    const markerHtml = `<div style="background:${color};width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center${border}"><span style="transform:rotate(45deg);font-size:.9rem">${loc.emoji}</span></div>`;
+    const icon = L.divIcon({className:"",html:markerHtml,iconSize:[30,30],iconAnchor:[15,30]});
+    const m = L.marker([loc.lat,loc.lng],{icon}).addTo(map);
+    const gmUrl = buildGMapsUrl(loc.lat, loc.lng);
+    const tags = getTags(loc).map(tag => `<span class="popup-tag">${tag}</span>`).join("");
+    const popupHtml = `
+      <div class="popup-header" style="background:${color}">
+        <h3>${loc.emoji} ${loc.name}</h3>
+        <p>📍 ${loc.city} <span class="popup-region" style="background:${regColors[loc.reg]}">${getRegionName(loc.reg)}</span></p>
+      </div>
+      <div class="popup-body">
+        ${getDesc(loc)}
+        <div class="popup-meta"><span>👶 ${localizeAge(loc.age)}</span><span>💶 ${localizePrice(loc.price)}</span></div>
+        <div class="popup-tags">${tags}</div>
+      </div>
+      <div class="popup-btns">
+        <a class="popup-btn-nav" href="${gmUrl}" target="_blank" rel="noopener noreferrer">${L_("popup_route")}</a>
+        <button class="popup-btn-add${inRoute?" added":""}" id="pop-add-${loc.id}" onclick="toggleRoute(${loc.id})">${inRoute ? L_("popup_added") : L_("popup_add")}</button>
+        <a class="popup-btn-info" href="${loc.url}" target="_blank" rel="noopener noreferrer">🔗</a>
+      </div>`;
+    m.bindPopup(popupHtml, {maxWidth:300});
+    markers.push(m);
+  });
+}
+
+function buildGMapsUrl(lat, lng) {
+  const origin = (myLat && myLng) ? `&origin=${myLat},${myLng}` : "";
+  return `https://www.google.com/maps/dir/?api=1${origin}&destination=${lat},${lng}&travelmode=${travelMode}`;
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const filtered = getFiltered();
+  document.getElementById('list-count').textContent = `${filtered.length} ${L_("locations_label")}`;
+  const byReg = {cb:[],denia:[],javea:[],valencia:[]};
+  filtered.forEach(loc => byReg[loc.reg].push(loc));
+  let html = "";
+  ["cb","denia","javea","valencia"].forEach(r => {
+    if (!byReg[r].length) return;
+    html += `<div class="region-header ${r}">${getRegionIcon(r)} ${getRegionName(r)} (${byReg[r].length})</div>`;
+    byReg[r].forEach(loc => {
+      const inR = routeStops.includes(loc.id);
+      html += `<div class="sidebar-item${inR?" in-route":""}" onclick="focusMarker(${loc.id})">
+        <div class="sidebar-item-icon">${loc.emoji}</div>
+        <div class="sidebar-item-info">
+          <h4>${loc.name}</h4>
+          <p>📍 ${loc.city} | 💶 ${localizePrice(loc.price)}</p>
+          <span class="sidebar-item-badge" style="background:${catColors[loc.cat]}">${getCatName(loc.cat)}</span>
+        </div>
+        <button class="sidebar-item-add${inR?" added":""}" onclick="event.stopPropagation();toggleRoute(${loc.id})">${inR?"✓":"+"}</button>
+      </div>`;
+    });
+  });
+  document.getElementById('sidebar-list').innerHTML = html;
+}
+
+// ── ROUTE PANEL ───────────────────────────────────────────────────────────────
+function refreshRoutePanel() {
+  const sl = document.getElementById("stop-list");
+  const empty = document.getElementById("rp-empty");
+  const cnt = document.getElementById("rp-count");
+  const link = document.getElementById("open-gm-link");
+
+  empty.innerHTML = L_("rp_empty");
+  cnt.textContent = routeStops.length;
+
+  if (routeStops.length === 0) {
+    sl.innerHTML = "";
+    sl.appendChild(empty);
+    link.classList.add("disabled");
+    link.href = "#";
+    return;
+  }
+
+  const stops = routeStops.map(id => locations.find(l => l.id === id));
+  let url;
+  if (stops.length === 1) {
+    const s = stops[0];
+    const origin = (myLat && myLng) ? `&origin=${myLat},${myLng}` : "";
+    url = `https://www.google.com/maps/dir/?api=1${origin}&destination=${s.lat},${s.lng}&travelmode=${travelMode}`;
+  } else {
+    const originPt = (myLat && myLng) ? `${myLat},${myLng}` : `${stops[0].lat},${stops[0].lng}`;
+    const dest = `${stops[stops.length-1].lat},${stops[stops.length-1].lng}`;
+    const wp = stops.length > 2 ? stops.slice(1,-1).map(s=>`${s.lat},${s.lng}`).join("|") : "";
+    url = `https://www.google.com/maps/dir/?api=1&origin=${originPt}&destination=${dest}&travelmode=${travelMode}`;
+    if (wp) url += `&waypoints=${wp}`;
+  }
+
+  link.classList.remove("disabled");
+  link.href = url;
+  if (empty.parentNode === sl) sl.removeChild(empty);
+  sl.innerHTML = stops.map((loc,i) => `<div class="stop-item">
+    <div class="stop-num">${i+1}</div>
+    <div style="flex:1;min-width:0"><div class="stop-name">${loc.emoji} ${loc.name}</div><div class="stop-city">📍 ${loc.city}</div></div>
+    <button class="stop-del" onclick="removeStop(${loc.id})">✕</button>
+  </div>`).join("");
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function filterCat(cat) {
+  activeCat = cat;
+  document.querySelectorAll(".filter-btn[data-cat]").forEach(b => b.classList.remove("active"));
+  if (cat !== "all") document.querySelector(`.filter-btn[data-cat="${cat}"]`).classList.add("active");
+  renderMarkers(); renderSidebar();
+}
+
+function filterReg(reg) {
+  if (activeReg === reg) {
+    activeReg = null;
+    document.querySelector(`.filter-btn[data-reg="${reg}"]`).classList.remove("active");
+  } else {
+    document.querySelectorAll(".filter-btn[data-reg]").forEach(b => b.classList.remove("active"));
+    activeReg = reg;
+    document.querySelector(`.filter-btn[data-reg="${reg}"]`).classList.add("active");
+  }
+  renderMarkers(); renderSidebar();
+}
+
+// ── ROUTE ACTIONS ─────────────────────────────────────────────────────────────
+function focusMarker(id) {
+  const loc = locations.find(l => l.id === id);
+  map.setView([loc.lat, loc.lng], 12, {animate:true});
+  const m = markers.find(mk => { const ll = mk.getLatLng(); return ll.lat === loc.lat && ll.lng === loc.lng; });
+  if (m) m.openPopup();
+}
+
+function toggleRoute(id) {
+  const idx = routeStops.indexOf(id);
+  if (idx > -1) { routeStops.splice(idx, 1); showToast(L_("toast_removed")); }
+  else {
+    if (routeStops.length >= 9) { showToast(L_("toast_max")); return; }
+    routeStops.push(id); showToast(L_("toast_added"));
+  }
+  refreshRoutePanel(); renderMarkers(); renderSidebar();
+}
+
+function removeStop(id) {
+  routeStops = routeStops.filter(s => s !== id);
+  refreshRoutePanel(); renderMarkers(); renderSidebar();
+}
+
+function clearRoute() {
+  if (!routeStops.length) return;
+  if (confirm(L_("confirm_clear"))) {
+    routeStops = [];
+    refreshRoutePanel(); renderMarkers(); renderSidebar();
+    showToast(L_("toast_cleared"));
+  }
+}
+
+function selectMode(mode) {
+  travelMode = mode;
+  document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add("active");
+  refreshRoutePanel(); renderMarkers();
+}
+
+// ── GEOLOCATION ───────────────────────────────────────────────────────────────
+function getMyLocation() {
+  const btn = document.getElementById("loc-btn");
+  btn.textContent = L_("loc_searching");
+  btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      myLat = pos.coords.latitude.toFixed(6);
+      myLng = pos.coords.longitude.toFixed(6);
+      locationFound = true;
+      btn.textContent = L_("loc_active");
+      btn.classList.add("active");
+      btn.disabled = false;
+      document.getElementById("loc-status").textContent = L_("loc_found");
+      document.getElementById("loc-status").style.display = "inline";
+      showToast(L_("toast_loc"));
+      L.marker([myLat,myLng], {
+        icon: L.divIcon({className:"",html:`<div style="background:#27ae60;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,iconSize:[18,18],iconAnchor:[9,9]})
+      }).addTo(map).bindPopup(L_("my_location")).openPopup();
+      map.setView([myLat, myLng], 10, {animate:true});
+      refreshRoutePanel(); renderMarkers();
+    },
+    () => {
+      btn.textContent = L_("loc_btn");
+      btn.disabled = false;
+      showToast(L_("toast_loc_err"));
+    }
+  );
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
