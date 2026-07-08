@@ -76,7 +76,14 @@
     .rp-clear-btn:hover{background:#fee}
     .sidebar-title{padding:8px 13px 6px;font-size:.72rem;font-weight:700;color:#1a73e8;background:#f8fbff;border-bottom:1px solid #f0f0f0}
     .sidebar-count{float:right;font-size:.65rem;color:#888;font-weight:400}
+    .search-wrap{padding:8px 11px;border-bottom:1px solid #f0f0f0;background:white}
+    .search-input{width:100%;border:1.5px solid #e0e7f0;border-radius:9px;padding:8px 11px;font-size:.76rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .search-input:focus{border-color:#1a73e8}
+    .search-clear{position:absolute;right:19px;background:none;border:none;color:#aaa;font-size:1rem;cursor:pointer;line-height:1;padding:4px}
+    .search-clear:hover{color:#666}
+    .search-row{position:relative;display:flex;align-items:center}
     .sidebar-list{flex:1;overflow-y:auto}
+    .sidebar-empty{text-align:center;color:#aaa;font-size:.75rem;padding:24px 12px}
     .region-header{padding:5px 13px;font-size:.66rem;font-weight:700;text-transform:uppercase;color:white}
     .region-header.cb{background:#9c27b0}
     .region-header.denia{background:#00897b}
@@ -115,8 +122,12 @@
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:white;padding:10px 18px;border-radius:8px;font-size:.8rem;z-index:10000;opacity:0;transition:opacity .3s;pointer-events:none}
     .toast.show{opacity:1}
     @media(max-width:768px){
+      body{overflow:auto}
+      #app{height:auto;min-height:100vh}
       .layout{flex-direction:column}
-      .sidebar{width:100%;max-height:40vh;border-right:none;border-bottom:1px solid #e0e7f0}
+      #map{order:-1;height:55vh;flex:none}
+      .sidebar{width:100%;max-height:none;border-right:none;border-bottom:1px solid #e0e7f0}
+      .sidebar-list{overflow:visible}
       h1{font-size:1.1rem}
       .subtitle{font-size:.72rem}
     }
@@ -186,6 +197,12 @@
       <div class="sidebar-title" id="sidebar-title-el">
         📍 <span id="sidebar-title-label"></span> <span class="sidebar-count" id="list-count"></span>
       </div>
+      <div class="search-wrap">
+        <div class="search-row">
+          <input class="search-input" id="search-input" type="text" oninput="onSearch(this.value)" />
+          <button class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none">✕</button>
+        </div>
+      </div>
       <div class="sidebar-list" id="sidebar-list"></div>
     </div>
     <div id="map"></div>
@@ -214,6 +231,7 @@ const t = {
     rp_empty:"Click <strong>+</strong> on an activity to add it",
     open_gm:"Open in Google Maps",
     sidebar_label:"Activities",
+    search_ph:"🔍 Search activity or place...",no_results:"No activities found",
     popup_route:"📍 Route here",popup_add:"+ Add",popup_added:"✓ Added",
     cat_waterpark:"Water Park",cat_dieren:"Animals",cat_natuur:"Nature",cat_cultuur:"Culture",cat_avontuur:"Adventure",cat_strand:"Beach",
     reg_cb:"Costa Blanca",reg_denia:"Dénia",reg_javea:"Jávea",reg_valencia:"Valencia",
@@ -238,6 +256,7 @@ const t = {
     rp_empty:"Klik op <strong>+</strong> bij een activiteit om toe te voegen",
     open_gm:"Open in Google Maps",
     sidebar_label:"Activiteiten",
+    search_ph:"🔍 Zoek activiteit of plaats...",no_results:"Geen activiteiten gevonden",
     popup_route:"📍 Route naar hier",popup_add:"+ Dag",popup_added:"✓ Dag",
     cat_waterpark:"Waterpark",cat_dieren:"Dieren",cat_natuur:"Natuur",cat_cultuur:"Cultuur",cat_avontuur:"Avontuur",cat_strand:"Strand",
     reg_cb:"Costa Blanca",reg_denia:"Dénia",reg_javea:"Jávea",reg_valencia:"Valencia",
@@ -262,6 +281,7 @@ const t = {
     rp_empty:"Klicken Sie auf <strong>+</strong> bei einer Aktivität",
     open_gm:"In Google Maps öffnen",
     sidebar_label:"Aktivitäten",
+    search_ph:"🔍 Aktivität oder Ort suchen...",no_results:"Keine Aktivitäten gefunden",
     popup_route:"📍 Route hierhin",popup_add:"+ Tag",popup_added:"✓ Tag",
     cat_waterpark:"Wasserpark",cat_dieren:"Tiere",cat_natuur:"Natur",cat_cultuur:"Kultur",cat_avontuur:"Abenteuer",cat_strand:"Strand",
     reg_cb:"Costa Blanca",reg_denia:"Dénia",reg_javea:"Jávea",reg_valencia:"Valencia",
@@ -412,6 +432,7 @@ let map;
 let activeCat = "all";
 let activeReg = null;
 let routeStops = [];
+let searchQuery = "";
 let travelMode = "driving";
 let myLat = null, myLng = null;
 let locationFound = false;
@@ -458,6 +479,7 @@ function setLang(newLang) {
   document.getElementById('mode-bicycling').textContent = L_("mode_bicycling");
   document.getElementById('gm-btn-text').textContent = L_("open_gm");
   document.getElementById('sidebar-title-label').textContent = L_("sidebar_label");
+  document.getElementById('search-input').placeholder = L_("search_ph");
 
   // Update loc button state
   const locBtn = document.getElementById('loc-btn');
@@ -487,6 +509,7 @@ function getFiltered() {
   return locations.filter(loc => {
     if (activeCat !== "all" && loc.cat !== activeCat) return false;
     if (activeReg && loc.reg !== activeReg) return false;
+    if (searchQuery && !`${loc.name} ${loc.city}`.toLowerCase().includes(searchQuery)) return false;
     return true;
   });
 }
@@ -532,6 +555,10 @@ function buildGMapsUrl(lat, lng) {
 function renderSidebar() {
   const filtered = getFiltered();
   document.getElementById('list-count').textContent = `${filtered.length} ${L_("locations_label")}`;
+  if (!filtered.length) {
+    document.getElementById('sidebar-list').innerHTML = `<div class="sidebar-empty">${L_("no_results")}</div>`;
+    return;
+  }
   const byReg = {cb:[],denia:[],javea:[],valencia:[]};
   filtered.forEach(loc => byReg[loc.reg].push(loc));
   let html = "";
@@ -557,16 +584,13 @@ function renderSidebar() {
 // ── ROUTE PANEL ───────────────────────────────────────────────────────────────
 function refreshRoutePanel() {
   const sl = document.getElementById("stop-list");
-  const empty = document.getElementById("rp-empty");
   const cnt = document.getElementById("rp-count");
   const link = document.getElementById("open-gm-link");
 
-  empty.innerHTML = L_("rp_empty");
   cnt.textContent = routeStops.length;
 
   if (routeStops.length === 0) {
-    sl.innerHTML = "";
-    sl.appendChild(empty);
+    sl.innerHTML = `<div class="rp-empty" id="rp-empty">${L_("rp_empty")}</div>`;
     link.classList.add("disabled");
     link.href = "#";
     return;
@@ -583,12 +607,11 @@ function refreshRoutePanel() {
     const dest = `${stops[stops.length-1].lat},${stops[stops.length-1].lng}`;
     const wp = stops.length > 2 ? stops.slice(1,-1).map(s=>`${s.lat},${s.lng}`).join("|") : "";
     url = `https://www.google.com/maps/dir/?api=1&origin=${originPt}&destination=${dest}&travelmode=${travelMode}`;
-    if (wp) url += `&waypoints=${wp}`;
+    if (wp) url += `&waypoints=${encodeURIComponent(wp)}`;
   }
 
   link.classList.remove("disabled");
   link.href = url;
-  if (empty.parentNode === sl) sl.removeChild(empty);
   sl.innerHTML = stops.map((loc,i) => `<div class="stop-item">
     <div class="stop-num">${i+1}</div>
     <div style="flex:1;min-width:0"><div class="stop-name">${loc.emoji} ${loc.name}</div><div class="stop-city">📍 ${loc.city}</div></div>
@@ -614,6 +637,18 @@ function filterReg(reg) {
     document.querySelector(`.filter-btn[data-reg="${reg}"]`).classList.add("active");
   }
   renderMarkers(); renderSidebar();
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function onSearch(value) {
+  searchQuery = value.trim().toLowerCase();
+  document.getElementById("search-clear").style.display = searchQuery ? "block" : "none";
+  renderMarkers(); renderSidebar();
+}
+
+function clearSearch() {
+  document.getElementById("search-input").value = "";
+  onSearch("");
 }
 
 // ── ROUTE ACTIONS ─────────────────────────────────────────────────────────────
